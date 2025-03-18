@@ -63,21 +63,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar */}
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      {/* Mobile sidebar overlay */}
       <div
         className={`fixed inset-0 z-40 lg:hidden bg-gray-600/75 ${
           sidebarOpen ? "" : "hidden"
         }`}
         onClick={() => setSidebarOpen(false)}
-      ></div>
+      />
 
+      {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r shadow-sm transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between h-14 px-4 border-b">
           <h1 className="text-lg font-bold text-primary">Admin Dashboard</h1>
           <Button
             variant="ghost"
@@ -88,11 +89,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <X className="h-5 w-5" />
           </Button>
         </div>
-        <div className="flex flex-col h-[calc(100%-64px)] justify-between">
+        
+        <div className="flex flex-col h-[calc(100%-112px)] justify-between overflow-y-auto">
           <div className="p-4">
             <SidebarNav />
           </div>
-          <div className="p-4 border-t">
+          <div className="p-4 border-t mt-auto">
             <div className="mb-4">
               <p className="text-sm text-gray-500">Logged in as</p>
               <p className="font-medium">{user.username}</p>
@@ -109,8 +111,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
       </div>
 
-      <div className="lg:pl-64 flex flex-col min-h-screen">
-        <header className="bg-white border-b z-10 h-14 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0">
+      {/* Main content */}
+      <div className="flex flex-col flex-1 w-0">
+        <header className="bg-white border-b z-10 h-14 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <Button
             variant="ghost"
             size="icon"
@@ -139,7 +142,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </Button>
           </div>
         </header>
-        <main className="flex-1 overflow-x-hidden bg-gray-50">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>
