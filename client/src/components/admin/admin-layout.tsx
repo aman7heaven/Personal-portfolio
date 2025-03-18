@@ -63,7 +63,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar */}
       <div
         className={`fixed inset-0 z-40 lg:hidden bg-gray-600/75 ${
@@ -110,7 +110,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </div>
 
       <div className="lg:pl-64 flex flex-col min-h-screen">
-        <header className="bg-white shadow-sm z-10 py-4 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <header className="bg-white border-b z-10 py-3 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0">
           <Button
             variant="ghost"
             size="icon"
@@ -124,6 +124,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               variant="outline"
               size="sm"
               onClick={() => navigate("/")}
+              className="font-medium"
             >
               View Site
             </Button>
@@ -131,14 +132,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="hidden sm:flex"
+              className="hidden sm:flex font-medium"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </Button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-x-hidden bg-gray-50">
           {children}
         </main>
       </div>

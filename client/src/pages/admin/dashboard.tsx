@@ -54,7 +54,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="p-6 max-w-7xl mx-auto w-full">
+      <div className="p-6 pt-8 max-w-7xl mx-auto w-full">
         {/* Dashboard Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary/80 to-primary text-transparent bg-clip-text">
