@@ -1,16 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/hooks/use-auth";
 import AdminLayout from "@/components/admin/admin-layout";
-import { ContactMessage, Experience, Project, Skill, SkillCategory } from "@shared/schema";
-import { Activity, Briefcase, Award, Code, Mail, User } from "lucide-react";
+import { ContactMessage, Experience, Project, Skill, SkillCategory, User } from "@shared/schema";
+import { Activity, Briefcase, Award, Code, Mail, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  
+  // Fetch user data directly
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/user"],
+  });
   
   // Fetch dashboard stats
   const { data: experiences = [] } = useQuery<Experience[]>({
@@ -119,7 +122,7 @@ export default function AdminDashboard() {
                   {messages.slice(0, 5).map((message) => (
                     <div key={message.id} className="p-4 flex items-start gap-4">
                       <div className="bg-gray-100 rounded-full p-2">
-                        <User className="h-4 w-4" />
+                        <UserIcon className="h-4 w-4" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
