@@ -68,8 +68,37 @@ export default function ExperienceEdit() {
       const res = await apiRequest("POST", "/api/admin/experiences", data);
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/experiences"] });
+    onMutate: async (newExperience) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/experiences"] });
+      
+      // Snapshot the previous value
+      const previousExperiences = queryClient.getQueryData<Experience[]>(["/api/experiences"]) || [];
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData<Experience[]>(["/api/experiences"], old => {
+        // Create a fake ID for the optimistic update
+        const fakeId = Date.now();
+        const newExp = { 
+          ...newExperience, 
+          id: fakeId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        } as unknown as Experience;
+        
+        return [...(old || []), newExp];
+      });
+      
+      return { previousExperiences };
+    },
+    onSuccess: (data) => {
+      // Update with the real data from the server
+      queryClient.setQueryData<Experience[]>(["/api/experiences"], old => {
+        // Filter out any potentially fake entries and add the real one
+        const filtered = (old || []).filter(exp => exp.id !== data.id);
+        return [...filtered, data];
+      });
+      
       setDialogOpen(false);
       form.reset();
       toast({
@@ -77,12 +106,21 @@ export default function ExperienceEdit() {
         description: "Experience has been added successfully.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _, context) => {
+      // Rollback to the previous value on error
+      if (context?.previousExperiences) {
+        queryClient.setQueryData(["/api/experiences"], context.previousExperiences);
+      }
+      
       toast({
         title: "Failed to create experience",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to make sure the server state is reflected
+      queryClient.invalidateQueries({ queryKey: ["/api/experiences"] });
     },
   });
 
@@ -91,8 +129,35 @@ export default function ExperienceEdit() {
       const res = await apiRequest("PATCH", `/api/admin/experiences/${id}`, data);
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/experiences"] });
+    onMutate: async ({ id, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/experiences"] });
+      
+      // Snapshot the previous value
+      const previousExperiences = queryClient.getQueryData<Experience[]>(["/api/experiences"]) || [];
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData<Experience[]>(["/api/experiences"], old => {
+        return (old || []).map(exp => {
+          if (exp.id === id) {
+            return { 
+              ...exp, 
+              ...data,
+              updatedAt: new Date().toISOString() 
+            };
+          }
+          return exp;
+        });
+      });
+      
+      return { previousExperiences };
+    },
+    onSuccess: (updatedExp) => {
+      // Update with the real data from the server
+      queryClient.setQueryData<Experience[]>(["/api/experiences"], old => {
+        return (old || []).map(exp => exp.id === updatedExp.id ? updatedExp : exp);
+      });
+      
       setDialogOpen(false);
       setEditingExperience(null);
       form.reset();
@@ -101,32 +166,66 @@ export default function ExperienceEdit() {
         description: "Experience has been updated successfully.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _, context) => {
+      // Rollback to the previous value on error
+      if (context?.previousExperiences) {
+        queryClient.setQueryData(["/api/experiences"], context.previousExperiences);
+      }
+      
       toast({
         title: "Failed to update experience",
         description: error.message,
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      // Always refetch after error or success to make sure the server state is reflected
+      queryClient.invalidateQueries({ queryKey: ["/api/experiences"] });
+    },
   });
 
   const deleteExperienceMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/admin/experiences/${id}`);
+      return id;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/experiences"] });
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/experiences"] });
+      
+      // Snapshot the previous value
+      const previousExperiences = queryClient.getQueryData<Experience[]>(["/api/experiences"]) || [];
+      
+      // Optimistically update by removing the experience
+      queryClient.setQueryData<Experience[]>(["/api/experiences"], old => 
+        (old || []).filter(exp => exp.id !== id)
+      );
+      
+      return { previousExperiences };
+    },
+    onSuccess: (_, id) => {
+      // No need to update again since we've already removed it optimistically
+      // Just show success notification
       toast({
         title: "Experience deleted",
         description: "Experience has been deleted successfully.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _, context) => {
+      // Rollback to the previous value on error
+      if (context?.previousExperiences) {
+        queryClient.setQueryData(["/api/experiences"], context.previousExperiences);
+      }
+      
       toast({
         title: "Failed to delete experience",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ["/api/experiences"] });
     },
   });
 
