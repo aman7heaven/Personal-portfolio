@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import SidebarNav from "./sidebar-nav";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { User } from "@shared/schema";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -12,9 +14,31 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [, navigate] = useLocation();
-  const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Use direct query for user
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/user"],
+  });
+  
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/logout");
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["/api/user"], null);
+      navigate("/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Logout failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Ensure the user is admin, redirect otherwise
   useEffect(() => {
@@ -31,11 +55,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, [user, navigate, toast]);
 
   const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        navigate("/");
-      },
-    });
+    logoutMutation.mutate();
   };
 
   if (!user) {
