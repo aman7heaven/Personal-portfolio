@@ -54,9 +54,9 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="p-6 pt-8 max-w-7xl mx-auto w-full">
+      <div className="px-6 py-6 max-w-7xl mx-auto w-full">
         {/* Dashboard Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary/80 to-primary text-transparent bg-clip-text">
             Welcome, {user?.username}!
           </h1>

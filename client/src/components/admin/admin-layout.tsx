@@ -110,7 +110,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </div>
 
       <div className="lg:pl-64 flex flex-col min-h-screen">
-        <header className="bg-white border-b z-10 py-3 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0">
+        <header className="bg-white border-b z-10 h-14 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0">
           <Button
             variant="ghost"
             size="icon"
