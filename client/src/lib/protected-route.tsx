@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { Redirect, Route } from "wouter";
+import { Redirect, Route, useLocation } from "wouter";
 
 export function ProtectedRoute({
   path,
@@ -10,6 +10,10 @@ export function ProtectedRoute({
   component: () => React.JSX.Element;
 }) {
   const { user, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  // Check if the route starts with /admin
+  const isAdminRoute = path.startsWith("/admin");
 
   if (isLoading) {
     return (
@@ -28,16 +32,20 @@ export function ProtectedRoute({
       </Route>
     );
   }
-  
-  if (!user.isAdmin) {
+
+  // For admin routes, check if user is an admin
+  if (isAdminRoute && !user.isAdmin) {
     return (
       <Route path={path}>
-        <div className="flex flex-col items-center justify-center min-h-screen p-4">
-          <h1 className="text-2xl font-bold mb-4">Unauthorized Access</h1>
-          <p className="text-gray-600 mb-6">You need admin privileges to access this area.</p>
-          <a href="/" className="text-primary hover:text-primary-dark">
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-6">You do not have permission to access this page.</p>
+          <button 
+            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+            onClick={() => setLocation("/")}
+          >
             Return to Home
-          </a>
+          </button>
         </div>
       </Route>
     );

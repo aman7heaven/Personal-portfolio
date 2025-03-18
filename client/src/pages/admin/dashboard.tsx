@@ -1,173 +1,177 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
-import Sidebar from "@/components/admin/sidebar";
-import SectionHeader from "@/components/admin/section-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use-auth";
+import AdminLayout from "@/components/admin/admin-layout";
+import { ContactMessage, Experience, Project, Skill, SkillCategory } from "@shared/schema";
+import { Activity, Briefcase, Award, Code, Mail, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PortfolioInfo, Skill, Experience, Project, SocialLink } from "@shared/schema";
-import { BarChart3, Award, Briefcase, Folder, Users, Mail } from "lucide-react";
+import { useLocation } from "wouter";
 
 export default function AdminDashboard() {
-  // Fetch portfolio data
-  const { data: portfolioInfo } = useQuery<PortfolioInfo>({ queryKey: ['/api/portfolio-info'] });
-  const { data: skills = [] } = useQuery<Skill[]>({ queryKey: ['/api/skills'] });
-  const { data: experiences = [] } = useQuery<Experience[]>({ queryKey: ['/api/experiences'] });
-  const { data: projects = [] } = useQuery<Project[]>({ queryKey: ['/api/projects'] });
-  const { data: socialLinks = [] } = useQuery<SocialLink[]>({ queryKey: ['/api/social-links'] });
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
   
+  // Fetch dashboard stats
+  const { data: experiences = [] } = useQuery<Experience[]>({
+    queryKey: ["/api/experiences"],
+  });
+  
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ["/api/projects"],
+  });
+  
+  const { data: skillCategories = [] } = useQuery<SkillCategory[]>({
+    queryKey: ["/api/skill-categories"],
+  });
+  
+  const { data: skills = [] } = useQuery<Skill[]>({
+    queryKey: ["/api/skills"],
+  });
+  
+  const { data: messages = [] } = useQuery<ContactMessage[]>({
+    queryKey: ["/api/admin/contact-messages"],
+  });
+
+  // Calculate unread messages count
+  const unreadMessages = messages.filter(message => !message.read).length;
+
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      
-      <div className="flex-1 p-8">
-        <SectionHeader 
-          title="Dashboard" 
-          description="Overview of your portfolio content"
-          icon={<BarChart3 className="h-6 w-6" />}
-        />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-          {/* About Card */}
+    <AdminLayout>
+      <div className="p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Welcome, {user?.username}!</h1>
+          <p className="text-gray-500">
+            Manage and customize your portfolio website from this dashboard.
+          </p>
+        </div>
+
+        {/* Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">About Section</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{portfolioInfo?.name || "Not set"}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {portfolioInfo ? "Profile information configured" : "Profile information not set"}
-              </p>
-              <div className="mt-4">
-                <Link href="/admin/about">
-                  <Button size="sm" variant="outline">Edit About Section</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Skills Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Skills</CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{skills.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Total skills in your portfolio
-              </p>
-              <div className="mt-4">
-                <Link href="/admin/skills">
-                  <Button size="sm" variant="outline">Manage Skills</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Experiences Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Work Experience</CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Total Experiences</CardTitle>
+              <Briefcase className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{experiences.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Work experiences displayed
-              </p>
-              <div className="mt-4">
-                <Link href="/admin/experience">
-                  <Button size="sm" variant="outline">Manage Experience</Button>
-                </Link>
-              </div>
+              <p className="text-xs text-gray-500 mt-1">Professional experiences</p>
+              <Button 
+                variant="link" 
+                className="px-0 mt-2 h-auto" 
+                onClick={() => navigate("/admin/experience")}
+              >
+                Manage Experiences →
+              </Button>
             </CardContent>
           </Card>
-          
-          {/* Projects Card */}
+
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Projects</CardTitle>
-              <Folder className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+              <Award className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{projects.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Projects showcased
-              </p>
-              <div className="mt-4">
-                <Link href="/admin/projects">
-                  <Button size="sm" variant="outline">Manage Projects</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Social Links Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Social Links</CardTitle>
-              <svg 
-                className="h-4 w-4 text-muted-foreground" 
-                xmlns="http://www.w3.org/2000/svg" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
+              <p className="text-xs text-gray-500 mt-1">Portfolio projects</p>
+              <Button 
+                variant="link" 
+                className="px-0 mt-2 h-auto" 
+                onClick={() => navigate("/admin/projects")}
               >
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{socialLinks.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Social media profiles linked
-              </p>
-              <div className="mt-4">
-                <Link href="/admin/about">
-                  <Button size="sm" variant="outline">Manage Social Links</Button>
-                </Link>
-              </div>
+                Manage Projects →
+              </Button>
             </CardContent>
           </Card>
-          
-          {/* Contact Info Card */}
+
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Contact Information</CardTitle>
-              <Mail className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Total Skills</CardTitle>
+              <Code className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-sm font-medium truncate">{portfolioInfo?.contactEmail || "Email not set"}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Contact email for messages
-              </p>
-              <div className="mt-4">
-                <Link href="/admin/about">
-                  <Button size="sm" variant="outline">Edit Contact Info</Button>
-                </Link>
+              <div className="text-2xl font-bold">{skills.length}</div>
+              <p className="text-xs text-gray-500 mt-1">Skills in {skillCategories.length} categories</p>
+              <Button 
+                variant="link" 
+                className="px-0 mt-2 h-auto" 
+                onClick={() => navigate("/admin/skills")}
+              >
+                Manage Skills →
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Messages */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Recent Messages</h2>
+            <Badge variant={unreadMessages > 0 ? "destructive" : "outline"}>
+              {unreadMessages} unread
+            </Badge>
+          </div>
+          
+          <Card>
+            <CardContent className="p-0">
+              {messages.length > 0 ? (
+                <div className="divide-y">
+                  {messages.slice(0, 5).map((message) => (
+                    <div key={message.id} className="p-4 flex items-start gap-4">
+                      <div className="bg-gray-100 rounded-full p-2">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">{message.name}</div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(message.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-500">{message.email}</div>
+                        <div className="text-sm font-medium mt-1">{message.subject}</div>
+                        <div className="text-sm mt-1 line-clamp-2">{message.message}</div>
+                      </div>
+                      {!message.read && (
+                        <Badge className="shrink-0" variant="secondary">New</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center text-gray-500">
+                  No messages received yet
+                </div>
+              )}
+              
+              <div className="p-4 border-t">
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={() => navigate("/admin/contact")}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  View All Messages
+                </Button>
               </div>
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Quick Actions */}
-        <div className="mt-8">
-          <h2 className="text-lg font-medium mb-4">Quick Actions</h2>
+        <div>
+          <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/admin/settings">
-              <Button variant="outline" className="w-full">Settings</Button>
-            </Link>
-            <Link href="/" target="_blank">
-              <Button variant="outline" className="w-full">View Portfolio</Button>
-            </Link>
+            <Button onClick={() => navigate("/admin/about")}>Edit About Section</Button>
+            <Button onClick={() => navigate("/admin/skills")}>Manage Skills</Button>
+            <Button onClick={() => navigate("/admin/experience")}>Manage Experience</Button>
+            <Button onClick={() => navigate("/admin/projects")}>Manage Projects</Button>
+            <Button onClick={() => navigate("/admin/contact")}>Contact Settings</Button>
+            <Button onClick={() => navigate("/admin/settings")}>Site Settings</Button>
+            <Button variant="outline" onClick={() => navigate("/")}>View Portfolio</Button>
           </div>
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

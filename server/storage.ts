@@ -1,336 +1,450 @@
-import { 
-  users, type User, type InsertUser,
-  portfolioInfo, type PortfolioInfo, type InsertPortfolioInfo,
-  socialLinks, type SocialLink, type InsertSocialLink,
-  skills, type Skill, type InsertSkill,
-  experiences, type Experience, type InsertExperience,
-  experienceTechnologies, type ExperienceTechnology, type InsertExperienceTechnology,
-  projects, type Project, type InsertProject,
-  projectTechnologies, type ProjectTechnology, type InsertProjectTechnology,
-  setupKeys, type SetupKey, type InsertSetupKey,
-  ExperienceWithTechnologies, ProjectWithTechnologies
-} from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { eq } from "drizzle-orm";
+
+import {
+  users,
+  siteConfig,
+  hero,
+  about,
+  skillCategories,
+  skills,
+  experiences,
+  projects,
+  contactInfo,
+  contactMessages,
+  type User,
+  type InsertUser,
+  type SiteConfig,
+  type InsertSiteConfig,
+  type Hero,
+  type InsertHero,
+  type About,
+  type InsertAbout,
+  type SkillCategory,
+  type InsertSkillCategory,
+  type Skill,
+  type InsertSkill,
+  type Experience,
+  type InsertExperience,
+  type Project,
+  type InsertProject,
+  type ContactInfo,
+  type InsertContactInfo,
+  type ContactMessage,
+  type InsertContactMessage
+} from "@shared/schema";
 
 const MemoryStore = createMemoryStore(session);
 
 export interface IStorage {
-  // User methods
+  // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
-  // Portfolio info methods
-  getPortfolioInfo(): Promise<PortfolioInfo | undefined>;
-  updatePortfolioInfo(info: InsertPortfolioInfo): Promise<PortfolioInfo>;
-  
-  // Social links methods
-  getSocialLinks(): Promise<SocialLink[]>;
-  createSocialLink(link: InsertSocialLink): Promise<SocialLink>;
-  updateSocialLink(id: number, link: InsertSocialLink): Promise<SocialLink | undefined>;
-  deleteSocialLink(id: number): Promise<boolean>;
-  
-  // Skills methods
+  checkAdminExists(): Promise<boolean>;
+
+  // Site config operations
+  getSiteConfig(): Promise<SiteConfig | undefined>;
+  createSiteConfig(config: InsertSiteConfig): Promise<SiteConfig>;
+  updateSiteConfig(config: Partial<InsertSiteConfig>): Promise<SiteConfig>;
+
+  // Hero operations
+  getHero(): Promise<Hero | undefined>;
+  createHero(heroData: InsertHero): Promise<Hero>;
+  updateHero(heroData: Partial<InsertHero>): Promise<Hero>;
+
+  // About operations
+  getAbout(): Promise<About | undefined>;
+  createAbout(aboutData: InsertAbout): Promise<About>;
+  updateAbout(aboutData: Partial<InsertAbout>): Promise<About>;
+
+  // Skill category operations
+  getSkillCategories(): Promise<SkillCategory[]>;
+  getSkillCategory(id: number): Promise<SkillCategory | undefined>;
+  createSkillCategory(category: InsertSkillCategory): Promise<SkillCategory>;
+  updateSkillCategory(id: number, category: Partial<InsertSkillCategory>): Promise<SkillCategory | undefined>;
+  deleteSkillCategory(id: number): Promise<void>;
+
+  // Skill operations
   getSkills(): Promise<Skill[]>;
+  getSkill(id: number): Promise<Skill | undefined>;
   createSkill(skill: InsertSkill): Promise<Skill>;
-  updateSkill(id: number, skill: InsertSkill): Promise<Skill | undefined>;
-  deleteSkill(id: number): Promise<boolean>;
-  
-  // Experience methods
-  getExperiences(): Promise<ExperienceWithTechnologies[]>;
-  getExperience(id: number): Promise<ExperienceWithTechnologies | undefined>;
+  updateSkill(id: number, skill: Partial<InsertSkill>): Promise<Skill | undefined>;
+  deleteSkill(id: number): Promise<void>;
+
+  // Experience operations
+  getExperiences(): Promise<Experience[]>;
+  getExperience(id: number): Promise<Experience | undefined>;
   createExperience(experience: InsertExperience): Promise<Experience>;
-  updateExperience(id: number, experience: InsertExperience): Promise<Experience | undefined>;
-  deleteExperience(id: number): Promise<boolean>;
-  
-  // Experience technologies methods
-  createExperienceTechnology(tech: InsertExperienceTechnology): Promise<ExperienceTechnology>;
-  deleteExperienceTechnologiesByExperienceId(experienceId: number): Promise<boolean>;
-  
-  // Project methods
-  getProjects(): Promise<ProjectWithTechnologies[]>;
-  getProject(id: number): Promise<ProjectWithTechnologies | undefined>;
+  updateExperience(id: number, experience: Partial<InsertExperience>): Promise<Experience | undefined>;
+  deleteExperience(id: number): Promise<void>;
+
+  // Project operations
+  getProjects(): Promise<Project[]>;
+  getProject(id: number): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
-  updateProject(id: number, project: InsertProject): Promise<Project | undefined>;
-  deleteProject(id: number): Promise<boolean>;
-  
-  // Project technologies methods
-  createProjectTechnology(tech: InsertProjectTechnology): Promise<ProjectTechnology>;
-  deleteProjectTechnologiesByProjectId(projectId: number): Promise<boolean>;
-  
-  // Setup key methods
-  getSetupKeyByKey(key: string): Promise<SetupKey | undefined>;
-  markSetupKeyAsUsed(id: number): Promise<boolean>;
-  createSetupKey(key: InsertSetupKey): Promise<SetupKey>;
-  
+  updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined>;
+  deleteProject(id: number): Promise<void>;
+
+  // Contact info operations
+  getContactInfo(): Promise<ContactInfo | undefined>;
+  createContactInfo(info: InsertContactInfo): Promise<ContactInfo>;
+  updateContactInfo(info: Partial<InsertContactInfo>): Promise<ContactInfo>;
+
+  // Contact message operations
+  getContactMessages(): Promise<ContactMessage[]>;
+  getContactMessage(id: number): Promise<ContactMessage | undefined>;
+  createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
+  markContactMessageAsRead(id: number): Promise<ContactMessage | undefined>;
+  deleteContactMessage(id: number): Promise<void>;
+
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
-  
+  sessionStore: session.Store;
+
   constructor() {
     this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
+      checkPeriod: 86400000, // prune expired entries every 24h
     });
   }
-  
-  // User methods
+
+  // User operations
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
-  
+
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
   }
-  
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
   }
-  
-  // Portfolio info methods
-  async getPortfolioInfo(): Promise<PortfolioInfo | undefined> {
-    const [info] = await db.select().from(portfolioInfo);
-    return info;
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
   }
-  
-  async updatePortfolioInfo(info: InsertPortfolioInfo): Promise<PortfolioInfo> {
-    const existing = await this.getPortfolioInfo();
+
+  async checkAdminExists(): Promise<boolean> {
+    const [admin] = await db.select().from(users).where(eq(users.isAdmin, true));
+    return !!admin;
+  }
+
+  // Site config operations
+  async getSiteConfig(): Promise<SiteConfig | undefined> {
+    const [config] = await db.select().from(siteConfig);
+    return config;
+  }
+
+  async createSiteConfig(config: InsertSiteConfig): Promise<SiteConfig> {
+    const [newConfig] = await db.insert(siteConfig).values(config).returning();
+    return newConfig;
+  }
+
+  async updateSiteConfig(config: Partial<InsertSiteConfig>): Promise<SiteConfig> {
+    const [existingConfig] = await db.select().from(siteConfig);
     
-    if (existing) {
-      const [updated] = await db
-        .update(portfolioInfo)
-        .set({ ...info, updatedAt: new Date() })
-        .where(eq(portfolioInfo.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      const [created] = await db.insert(portfolioInfo).values(info).returning();
-      return created;
+    if (!existingConfig) {
+      throw new Error("Site configuration not found");
     }
-  }
-  
-  // Social links methods
-  async getSocialLinks(): Promise<SocialLink[]> {
-    return db.select().from(socialLinks);
-  }
-  
-  async createSocialLink(link: InsertSocialLink): Promise<SocialLink> {
-    const [created] = await db.insert(socialLinks).values(link).returning();
-    return created;
-  }
-  
-  async updateSocialLink(id: number, link: InsertSocialLink): Promise<SocialLink | undefined> {
-    const [updated] = await db
-      .update(socialLinks)
-      .set({ ...link, updatedAt: new Date() })
-      .where(eq(socialLinks.id, id))
+    
+    const now = new Date();
+    const [updatedConfig] = await db
+      .update(siteConfig)
+      .set({ ...config, updatedAt: now })
+      .where(eq(siteConfig.id, existingConfig.id))
       .returning();
-    return updated;
+    
+    return updatedConfig;
   }
-  
-  async deleteSocialLink(id: number): Promise<boolean> {
-    const result = await db.delete(socialLinks).where(eq(socialLinks.id, id));
-    return true;
+
+  // Hero operations
+  async getHero(): Promise<Hero | undefined> {
+    const [heroData] = await db.select().from(hero);
+    
+    if (!heroData) {
+      // Create default hero if it doesn't exist
+      return this.createHero({
+        greeting: "Hello, I'm",
+        name: "John Doe",
+        tagline: "Full Stack Developer & UI/UX Designer"
+      });
+    }
+    
+    return heroData;
   }
-  
-  // Skills methods
+
+  async createHero(heroData: InsertHero): Promise<Hero> {
+    const [newHero] = await db.insert(hero).values(heroData).returning();
+    return newHero;
+  }
+
+  async updateHero(heroData: Partial<InsertHero>): Promise<Hero> {
+    let existingHero = await this.getHero();
+    
+    if (!existingHero) {
+      throw new Error("Hero data not found");
+    }
+    
+    const now = new Date();
+    const [updatedHero] = await db
+      .update(hero)
+      .set({ ...heroData, updatedAt: now })
+      .where(eq(hero.id, existingHero.id))
+      .returning();
+    
+    return updatedHero;
+  }
+
+  // About operations
+  async getAbout(): Promise<About | undefined> {
+    const [aboutData] = await db.select().from(about);
+    
+    if (!aboutData) {
+      // Create default about if it doesn't exist
+      return this.createAbout({
+        bio: "I'm a passionate developer with experience building web applications.",
+        additionalInfo: "When I'm not coding, I enjoy exploring new technologies.",
+        profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=668&q=80",
+        details: [
+          { icon: "envelope", label: "Email", value: "contact@example.com" },
+          { icon: "map-marker-alt", label: "Location", value: "San Francisco, CA" }
+        ],
+        socialLinks: [
+          { platform: "twitter", url: "https://twitter.com", icon: "twitter" },
+          { platform: "linkedin", url: "https://linkedin.com", icon: "linkedin" },
+          { platform: "github", url: "https://github.com", icon: "github" }
+        ]
+      });
+    }
+    
+    return aboutData;
+  }
+
+  async createAbout(aboutData: InsertAbout): Promise<About> {
+    const [newAbout] = await db.insert(about).values(aboutData).returning();
+    return newAbout;
+  }
+
+  async updateAbout(aboutData: Partial<InsertAbout>): Promise<About> {
+    let existingAbout = await this.getAbout();
+    
+    if (!existingAbout) {
+      throw new Error("About data not found");
+    }
+    
+    const now = new Date();
+    const [updatedAbout] = await db
+      .update(about)
+      .set({ ...aboutData, updatedAt: now })
+      .where(eq(about.id, existingAbout.id))
+      .returning();
+    
+    return updatedAbout;
+  }
+
+  // Skill category operations
+  async getSkillCategories(): Promise<SkillCategory[]> {
+    return db.select().from(skillCategories);
+  }
+
+  async getSkillCategory(id: number): Promise<SkillCategory | undefined> {
+    const [category] = await db.select().from(skillCategories).where(eq(skillCategories.id, id));
+    return category;
+  }
+
+  async createSkillCategory(category: InsertSkillCategory): Promise<SkillCategory> {
+    const [newCategory] = await db.insert(skillCategories).values(category).returning();
+    return newCategory;
+  }
+
+  async updateSkillCategory(id: number, category: Partial<InsertSkillCategory>): Promise<SkillCategory | undefined> {
+    const now = new Date();
+    const [updatedCategory] = await db
+      .update(skillCategories)
+      .set({ ...category, updatedAt: now })
+      .where(eq(skillCategories.id, id))
+      .returning();
+    
+    return updatedCategory;
+  }
+
+  async deleteSkillCategory(id: number): Promise<void> {
+    await db.delete(skillCategories).where(eq(skillCategories.id, id));
+  }
+
+  // Skill operations
   async getSkills(): Promise<Skill[]> {
     return db.select().from(skills);
   }
-  
-  async createSkill(skill: InsertSkill): Promise<Skill> {
-    const [created] = await db.insert(skills).values(skill).returning();
-    return created;
+
+  async getSkill(id: number): Promise<Skill | undefined> {
+    const [skill] = await db.select().from(skills).where(eq(skills.id, id));
+    return skill;
   }
-  
-  async updateSkill(id: number, skill: InsertSkill): Promise<Skill | undefined> {
-    const [updated] = await db
+
+  async createSkill(skill: InsertSkill): Promise<Skill> {
+    const [newSkill] = await db.insert(skills).values(skill).returning();
+    return newSkill;
+  }
+
+  async updateSkill(id: number, skill: Partial<InsertSkill>): Promise<Skill | undefined> {
+    const now = new Date();
+    const [updatedSkill] = await db
       .update(skills)
-      .set({ ...skill, updatedAt: new Date() })
+      .set({ ...skill, updatedAt: now })
       .where(eq(skills.id, id))
       .returning();
-    return updated;
+    
+    return updatedSkill;
   }
-  
-  async deleteSkill(id: number): Promise<boolean> {
+
+  async deleteSkill(id: number): Promise<void> {
     await db.delete(skills).where(eq(skills.id, id));
-    return true;
   }
-  
-  // Experience methods
-  async getExperiences(): Promise<ExperienceWithTechnologies[]> {
-    const experiencesList = await db
-      .select()
-      .from(experiences)
-      .orderBy(asc(experiences.order));
-    
-    const result: ExperienceWithTechnologies[] = [];
-    
-    for (const exp of experiencesList) {
-      const techs = await db
-        .select()
-        .from(experienceTechnologies)
-        .where(eq(experienceTechnologies.experienceId, exp.id));
-      
-      result.push({
-        ...exp,
-        technologies: techs
-      });
-    }
-    
-    return result;
+
+  // Experience operations
+  async getExperiences(): Promise<Experience[]> {
+    return db.select().from(experiences);
   }
-  
-  async getExperience(id: number): Promise<ExperienceWithTechnologies | undefined> {
-    const [exp] = await db
-      .select()
-      .from(experiences)
-      .where(eq(experiences.id, id));
-    
-    if (!exp) return undefined;
-    
-    const techs = await db
-      .select()
-      .from(experienceTechnologies)
-      .where(eq(experienceTechnologies.experienceId, id));
-    
-    return {
-      ...exp,
-      technologies: techs
-    };
+
+  async getExperience(id: number): Promise<Experience | undefined> {
+    const [experience] = await db.select().from(experiences).where(eq(experiences.id, id));
+    return experience;
   }
-  
+
   async createExperience(experience: InsertExperience): Promise<Experience> {
-    const [created] = await db.insert(experiences).values(experience).returning();
-    return created;
+    const [newExperience] = await db.insert(experiences).values(experience).returning();
+    return newExperience;
   }
-  
-  async updateExperience(id: number, experience: InsertExperience): Promise<Experience | undefined> {
-    const [updated] = await db
+
+  async updateExperience(id: number, experience: Partial<InsertExperience>): Promise<Experience | undefined> {
+    const now = new Date();
+    const [updatedExperience] = await db
       .update(experiences)
-      .set({ ...experience, updatedAt: new Date() })
+      .set({ ...experience, updatedAt: now })
       .where(eq(experiences.id, id))
       .returning();
-    return updated;
+    
+    return updatedExperience;
   }
-  
-  async deleteExperience(id: number): Promise<boolean> {
+
+  async deleteExperience(id: number): Promise<void> {
     await db.delete(experiences).where(eq(experiences.id, id));
-    return true;
   }
-  
-  // Experience technologies methods
-  async createExperienceTechnology(tech: InsertExperienceTechnology): Promise<ExperienceTechnology> {
-    const [created] = await db.insert(experienceTechnologies).values(tech).returning();
-    return created;
+
+  // Project operations
+  async getProjects(): Promise<Project[]> {
+    return db.select().from(projects);
   }
-  
-  async deleteExperienceTechnologiesByExperienceId(experienceId: number): Promise<boolean> {
-    await db.delete(experienceTechnologies).where(eq(experienceTechnologies.experienceId, experienceId));
-    return true;
+
+  async getProject(id: number): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project;
   }
-  
-  // Project methods
-  async getProjects(): Promise<ProjectWithTechnologies[]> {
-    const projectsList = await db
-      .select()
-      .from(projects)
-      .orderBy(asc(projects.order));
+
+  async createProject(project: InsertProject): Promise<Project> {
+    const [newProject] = await db.insert(projects).values(project).returning();
+    return newProject;
+  }
+
+  async updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined> {
+    const now = new Date();
+    const [updatedProject] = await db
+      .update(projects)
+      .set({ ...project, updatedAt: now })
+      .where(eq(projects.id, id))
+      .returning();
     
-    const result: ProjectWithTechnologies[] = [];
+    return updatedProject;
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await db.delete(projects).where(eq(projects.id, id));
+  }
+
+  // Contact info operations
+  async getContactInfo(): Promise<ContactInfo | undefined> {
+    const [info] = await db.select().from(contactInfo);
     
-    for (const proj of projectsList) {
-      const techs = await db
-        .select()
-        .from(projectTechnologies)
-        .where(eq(projectTechnologies.projectId, proj.id));
-      
-      result.push({
-        ...proj,
-        technologies: techs
+    if (!info) {
+      // Create default contact info if it doesn't exist
+      return this.createContactInfo({
+        description: "Have a project in mind or just want to say hello? Feel free to reach out!",
+        email: "contact@example.com",
+        phone: "(123) 456-7890",
+        location: "San Francisco, CA",
+        socialLinks: [
+          { platform: "twitter", url: "https://twitter.com", icon: "twitter" },
+          { platform: "linkedin", url: "https://linkedin.com", icon: "linkedin" },
+          { platform: "github", url: "https://github.com", icon: "github" },
+          { platform: "instagram", url: "https://instagram.com", icon: "instagram" }
+        ]
       });
     }
     
-    return result;
+    return info;
   }
-  
-  async getProject(id: number): Promise<ProjectWithTechnologies | undefined> {
-    const [proj] = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, id));
-    
-    if (!proj) return undefined;
-    
-    const techs = await db
-      .select()
-      .from(projectTechnologies)
-      .where(eq(projectTechnologies.projectId, id));
-    
-    return {
-      ...proj,
-      technologies: techs
-    };
+
+  async createContactInfo(info: InsertContactInfo): Promise<ContactInfo> {
+    const [newInfo] = await db.insert(contactInfo).values(info).returning();
+    return newInfo;
   }
-  
-  async createProject(project: InsertProject): Promise<Project> {
-    const [created] = await db.insert(projects).values(project).returning();
-    return created;
-  }
-  
-  async updateProject(id: number, project: InsertProject): Promise<Project | undefined> {
-    const [updated] = await db
-      .update(projects)
-      .set({ ...project, updatedAt: new Date() })
-      .where(eq(projects.id, id))
+
+  async updateContactInfo(info: Partial<InsertContactInfo>): Promise<ContactInfo> {
+    let existingInfo = await this.getContactInfo();
+    
+    if (!existingInfo) {
+      throw new Error("Contact info not found");
+    }
+    
+    const now = new Date();
+    const [updatedInfo] = await db
+      .update(contactInfo)
+      .set({ ...info, updatedAt: now })
+      .where(eq(contactInfo.id, existingInfo.id))
       .returning();
-    return updated;
+    
+    return updatedInfo;
   }
-  
-  async deleteProject(id: number): Promise<boolean> {
-    await db.delete(projects).where(eq(projects.id, id));
-    return true;
+
+  // Contact message operations
+  async getContactMessages(): Promise<ContactMessage[]> {
+    return db.select().from(contactMessages).orderBy(contactMessages.createdAt);
   }
-  
-  // Project technologies methods
-  async createProjectTechnology(tech: InsertProjectTechnology): Promise<ProjectTechnology> {
-    const [created] = await db.insert(projectTechnologies).values(tech).returning();
-    return created;
+
+  async getContactMessage(id: number): Promise<ContactMessage | undefined> {
+    const [message] = await db.select().from(contactMessages).where(eq(contactMessages.id, id));
+    return message;
   }
-  
-  async deleteProjectTechnologiesByProjectId(projectId: number): Promise<boolean> {
-    await db.delete(projectTechnologies).where(eq(projectTechnologies.projectId, projectId));
-    return true;
+
+  async createContactMessage(message: InsertContactMessage): Promise<ContactMessage> {
+    const [newMessage] = await db.insert(contactMessages).values(message).returning();
+    return newMessage;
   }
-  
-  // Setup key methods
-  async getSetupKeyByKey(key: string): Promise<SetupKey | undefined> {
-    const [setupKey] = await db
-      .select()
-      .from(setupKeys)
-      .where(eq(setupKeys.key, key));
-    return setupKey;
+
+  async markContactMessageAsRead(id: number): Promise<ContactMessage | undefined> {
+    const [updatedMessage] = await db
+      .update(contactMessages)
+      .set({ read: true })
+      .where(eq(contactMessages.id, id))
+      .returning();
+    
+    return updatedMessage;
   }
-  
-  async markSetupKeyAsUsed(id: number): Promise<boolean> {
-    await db
-      .update(setupKeys)
-      .set({ used: true })
-      .where(eq(setupKeys.id, id));
-    return true;
-  }
-  
-  async createSetupKey(key: InsertSetupKey): Promise<SetupKey> {
-    const [created] = await db.insert(setupKeys).values(key).returning();
-    return created;
+
+  async deleteContactMessage(id: number): Promise<void> {
+    await db.delete(contactMessages).where(eq(contactMessages.id, id));
   }
 }
 

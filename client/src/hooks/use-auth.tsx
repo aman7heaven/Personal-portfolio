@@ -7,6 +7,7 @@ import {
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -15,21 +16,38 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, RegisterData>;
-  adminRegisterMutation: UseMutationResult<SelectUser, Error, AdminRegisterData>;
+  registerAdminMutation: UseMutationResult<SelectUser, Error, RegisterAdminData>;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
 type RegisterData = Pick<InsertUser, "username" | "password" | "email">;
-type AdminRegisterData = RegisterData & { setupKey: string };
+type RegisterAdminData = RegisterData & { setupKey: string };
+
+// Extend the user schema with validation rules for registration
+const registerSchema = insertUserSchema.pick({
+  username: true,
+  password: true,
+  email: true,
+}).extend({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().email("Invalid email address"),
+});
+
+const registerAdminSchema = registerSchema.extend({
+  setupKey: z.string().min(1, "Setup key is required"),
+  isAdmin: z.boolean().default(true),
+});
 
 export const AuthContext = createContext<AuthContextType | null>(null);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  
   const {
     data: user,
     error,
     isLoading,
-  } = useQuery<SelectUser | null, Error>({
+  } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
@@ -43,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Login successful",
-        description: "Welcome back!",
+        description: `Welcome back, ${user.username}!`,
       });
     },
     onError: (error: Error) => {
@@ -56,15 +74,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: RegisterData) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
+    mutationFn: async (userData: RegisterData) => {
+      // Validate using the registration schema
+      registerSchema.parse(userData);
+      
+      const res = await apiRequest("POST", "/api/register", userData);
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Registration successful",
-        description: "Your account has been created.",
+        description: `Welcome, ${user.username}!`,
       });
     },
     onError: (error: Error) => {
@@ -75,22 +96,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
   });
-  
-  const adminRegisterMutation = useMutation({
-    mutationFn: async (data: AdminRegisterData) => {
-      const { setupKey, ...credentials } = data;
-      const res = await apiRequest("POST", "/api/register", {
-        ...credentials,
-        setupKey,
+
+  const registerAdminMutation = useMutation({
+    mutationFn: async (adminData: RegisterAdminData) => {
+      // Validate using the admin registration schema
+      registerAdminSchema.parse(adminData);
+      
+      const { setupKey, ...userData } = adminData;
+      const res = await apiRequest("POST", "/api/register", { 
+        ...userData, 
         isAdmin: true,
+        setupKey 
       });
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
       toast({
-        title: "Admin account created",
-        description: "Your admin account has been set up successfully.",
+        title: "Admin registration successful",
+        description: `Welcome, admin ${user.username}!`,
       });
     },
     onError: (error: Error) => {
@@ -109,8 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
       toast({
-        title: "Logged out",
-        description: "You have been logged out successfully.",
+        title: "Logged out successfully",
       });
     },
     onError: (error: Error) => {
@@ -131,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
-        adminRegisterMutation,
+        registerAdminMutation,
       }}
     >
       {children}

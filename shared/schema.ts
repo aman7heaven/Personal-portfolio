@@ -1,16 +1,14 @@
-import { pgTable, text, serial, integer, boolean, json, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, varchar, json, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
 
-// Users table for authentication
+// User model for authentication
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  email: text("email").notNull(),
-  isAdmin: boolean("is_admin").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  email: text("email").notNull().unique(),
+  isAdmin: boolean("is_admin").notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -20,189 +18,201 @@ export const insertUserSchema = createInsertSchema(users).pick({
   isAdmin: true,
 });
 
-// Basic portfolio information
-export const portfolioInfo = pgTable("portfolio_info", {
+// Site configuration
+export const siteConfig = pgTable("site_config", {
+  id: serial("id").primaryKey(),
+  siteName: text("site_name").notNull().default("Portfolio"),
+  setupKey: text("setup_key").notNull(),
+  primaryColor: text("primary_color").notNull().default("hsl(222.2 47.4% 11.2%)"),
+  metaDescription: text("meta_description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSiteConfigSchema = createInsertSchema(siteConfig).pick({
+  siteName: true,
+  setupKey: true,
+  primaryColor: true,
+  metaDescription: true,
+});
+
+// Hero section
+export const hero = pgTable("hero", {
+  id: serial("id").primaryKey(),
+  greeting: text("greeting").notNull().default("Hello, I'm"),
+  name: text("name").notNull().default("John Doe"),
+  tagline: text("tagline").notNull().default("Full Stack Developer & UI/UX Designer"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertHeroSchema = createInsertSchema(hero).pick({
+  greeting: true,
+  name: true,
+  tagline: true,
+});
+
+// About section
+export const about = pgTable("about", {
+  id: serial("id").primaryKey(),
+  bio: text("bio").notNull().default("I'm a passionate developer with experience building web applications."),
+  additionalInfo: text("additional_info"),
+  profileImage: text("profile_image"),
+  details: jsonb("details"),
+  socialLinks: jsonb("social_links"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertAboutSchema = createInsertSchema(about).pick({
+  bio: true,
+  additionalInfo: true,
+  profileImage: true,
+  details: true,
+  socialLinks: true,
+});
+
+// Skill categories
+export const skillCategories = pgTable("skill_categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  profileImage: text("profile_image").notNull(),
-  heroTitle: text("hero_title").notNull(),
-  heroSubtitle: text("hero_subtitle").notNull(),
-  aboutDescription: text("about_description").notNull(),
-  aboutAdditionalInfo: text("about_additional_info"),
-  contactLocation: text("contact_location"),
-  contactEmail: text("contact_email").notNull(),
-  contactPhone: text("contact_phone"),
-  footerCopyright: text("footer_copyright").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertPortfolioInfoSchema = createInsertSchema(portfolioInfo).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-// Social links
-export const socialLinks = pgTable("social_links", {
-  id: serial("id").primaryKey(),
-  platform: text("platform").notNull(),
-  url: text("url").notNull(),
   icon: text("icon").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertSocialLinkSchema = createInsertSchema(socialLinks).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertSkillCategorySchema = createInsertSchema(skillCategories).pick({
+  name: true,
+  icon: true,
 });
 
 // Skills
 export const skills = pgTable("skills", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  icon: text("icon").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  categoryId: integer("category_id").references(() => skillCategories.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertSkillSchema = createInsertSchema(skills).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertSkillSchema = createInsertSchema(skills).pick({
+  name: true,
+  categoryId: true,
 });
 
-// Experiences
+// Experience
 export const experiences = pgTable("experiences", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   company: text("company").notNull(),
-  period: text("period").notNull(),
+  location: text("location").notNull(),
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date"),
   description: text("description").notNull(),
-  order: integer("order").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  type: text("type").notNull().default("Full-time"),
+  technologies: jsonb("technologies"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertExperienceSchema = createInsertSchema(experiences).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertExperienceSchema = createInsertSchema(experiences).pick({
+  title: true,
+  company: true,
+  location: true,
+  startDate: true,
+  endDate: true,
+  description: true,
+  type: true,
+  technologies: true,
 });
-
-// Experience Technologies
-export const experienceTechnologies = pgTable("experience_technologies", {
-  id: serial("id").primaryKey(),
-  experienceId: integer("experience_id").notNull().references(() => experiences.id, { onDelete: "cascade" }),
-  name: text("name").notNull()
-});
-
-export const insertExperienceTechnologySchema = createInsertSchema(experienceTechnologies).omit({
-  id: true,
-});
-
-// Experience Relations
-export const experiencesRelations = relations(experiences, ({ many }) => ({
-  technologies: many(experienceTechnologies),
-}));
-
-export const experienceTechnologiesRelations = relations(experienceTechnologies, ({ one }) => ({
-  experience: one(experiences, {
-    fields: [experienceTechnologies.experienceId],
-    references: [experiences.id],
-  }),
-}));
 
 // Projects
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  image: text("image").notNull(),
-  liveUrl: text("live_url"),
-  codeUrl: text("code_url"),
-  order: integer("order").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  image: text("image"),
+  demoLink: text("demo_link"),
+  repoLink: text("repo_link"),
+  technologies: jsonb("technologies"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertProjectSchema = createInsertSchema(projects).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertProjectSchema = createInsertSchema(projects).pick({
+  title: true,
+  description: true,
+  image: true,
+  demoLink: true,
+  repoLink: true,
+  technologies: true,
 });
 
-// Project Technologies
-export const projectTechnologies = pgTable("project_technologies", {
+// Contact info
+export const contactInfo = pgTable("contact_info", {
   id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  name: text("name").notNull()
+  description: text("description"),
+  email: text("email"),
+  phone: text("phone"),
+  location: text("location"),
+  socialLinks: jsonb("social_links"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertProjectTechnologySchema = createInsertSchema(projectTechnologies).omit({
-  id: true,
+export const insertContactInfoSchema = createInsertSchema(contactInfo).pick({
+  description: true,
+  email: true,
+  phone: true,
+  location: true,
+  socialLinks: true,
 });
 
-// Project Relations
-export const projectsRelations = relations(projects, ({ many }) => ({
-  technologies: many(projectTechnologies),
-}));
-
-export const projectTechnologiesRelations = relations(projectTechnologies, ({ one }) => ({
-  project: one(projects, {
-    fields: [projectTechnologies.projectId],
-    references: [projects.id],
-  }),
-}));
-
-// Setup Key
-export const setupKeys = pgTable("setup_keys", {
+// Contact messages
+export const contactMessages = pgTable("contact_messages", {
   id: serial("id").primaryKey(),
-  key: text("key").notNull().unique(),
-  used: boolean("used").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  read: boolean("read").notNull().default(false),
 });
 
-export const insertSetupKeySchema = createInsertSchema(setupKeys).omit({
-  id: true,
-  createdAt: true,
+export const insertContactMessageSchema = createInsertSchema(contactMessages).pick({
+  name: true,
+  email: true,
+  subject: true,
+  message: true,
 });
 
-// Types
-export type InsertUser = z.infer<typeof insertUserSchema>;
+// Type exports
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
-export type InsertPortfolioInfo = z.infer<typeof insertPortfolioInfoSchema>;
-export type PortfolioInfo = typeof portfolioInfo.$inferSelect;
+export type SiteConfig = typeof siteConfig.$inferSelect;
+export type InsertSiteConfig = z.infer<typeof insertSiteConfigSchema>;
 
-export type InsertSocialLink = z.infer<typeof insertSocialLinkSchema>;
-export type SocialLink = typeof socialLinks.$inferSelect;
+export type Hero = typeof hero.$inferSelect;
+export type InsertHero = z.infer<typeof insertHeroSchema>;
 
-export type InsertSkill = z.infer<typeof insertSkillSchema>;
+export type About = typeof about.$inferSelect;
+export type InsertAbout = z.infer<typeof insertAboutSchema>;
+
+export type SkillCategory = typeof skillCategories.$inferSelect;
+export type InsertSkillCategory = z.infer<typeof insertSkillCategorySchema>;
+
 export type Skill = typeof skills.$inferSelect;
+export type InsertSkill = z.infer<typeof insertSkillSchema>;
 
-export type InsertExperience = z.infer<typeof insertExperienceSchema>;
 export type Experience = typeof experiences.$inferSelect;
+export type InsertExperience = z.infer<typeof insertExperienceSchema>;
 
-export type InsertExperienceTechnology = z.infer<typeof insertExperienceTechnologySchema>;
-export type ExperienceTechnology = typeof experienceTechnologies.$inferSelect;
-
-export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Project = typeof projects.$inferSelect;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
 
-export type InsertProjectTechnology = z.infer<typeof insertProjectTechnologySchema>;
-export type ProjectTechnology = typeof projectTechnologies.$inferSelect;
+export type ContactInfo = typeof contactInfo.$inferSelect;
+export type InsertContactInfo = z.infer<typeof insertContactInfoSchema>;
 
-export type InsertSetupKey = z.infer<typeof insertSetupKeySchema>;
-export type SetupKey = typeof setupKeys.$inferSelect;
-
-// Combined types for frontend
-export interface ProjectWithTechnologies extends Project {
-  technologies: ProjectTechnology[];
-}
-
-export interface ExperienceWithTechnologies extends Experience {
-  technologies: ExperienceTechnology[];
-}
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
