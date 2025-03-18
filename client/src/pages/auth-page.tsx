@@ -6,10 +6,13 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { User } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 // Login form schema
 const loginSchema = z.object({
@@ -35,8 +38,13 @@ type AdminRegisterFormValues = z.infer<typeof adminRegisterSchema>;
 
 export default function AuthPage() {
   const [location, navigate] = useLocation();
-  const { user, loginMutation, registerMutation, registerAdminMutation } = useAuth();
   const [showAdminSetup, setShowAdminSetup] = useState(false);
+  const { toast } = useToast();
+
+  // Check if user is logged in
+  const { data: user, isLoading } = useQuery<User>({
+    queryKey: ["/api/user"],
+  });
 
   // Redirect if already logged in
   useEffect(() => {
@@ -44,6 +52,80 @@ export default function AuthPage() {
       navigate(user.isAdmin ? "/admin" : "/");
     }
   }, [user, navigate]);
+
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: LoginFormValues) => {
+      const res = await apiRequest("POST", "/api/login", credentials);
+      return await res.json();
+    },
+    onSuccess: (user: User) => {
+      queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${user.username}!`,
+      });
+      navigate(user.isAdmin ? "/admin" : "/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Register mutation
+  const registerMutation = useMutation({
+    mutationFn: async (userData: RegisterFormValues) => {
+      const res = await apiRequest("POST", "/api/register", userData);
+      return await res.json();
+    },
+    onSuccess: (user: User) => {
+      queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Registration successful",
+        description: `Welcome, ${user.username}!`,
+      });
+      navigate(user.isAdmin ? "/admin" : "/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Admin register mutation
+  const registerAdminMutation = useMutation({
+    mutationFn: async (adminData: AdminRegisterFormValues) => {
+      const { setupKey, ...userData } = adminData;
+      const res = await apiRequest("POST", "/api/register", { 
+        ...userData, 
+        isAdmin: true,
+        setupKey 
+      });
+      return await res.json();
+    },
+    onSuccess: (user: User) => {
+      queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Admin registration successful",
+        description: `Welcome, admin ${user.username}!`,
+      });
+      navigate("/admin");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Admin registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -88,7 +170,7 @@ export default function AuthPage() {
     registerAdminMutation.mutate(data);
   };
 
-  if (user) {
+  if (isLoading || user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
