@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AdminLayout from "@/components/admin/admin-layout";
 import { ContactMessage, Experience, Project, Skill, SkillCategory, User } from "@shared/schema";
-import { Activity, Briefcase, Award, Code, Mail, User as UserIcon } from "lucide-react";
+import { Activity, Briefcase, Award, Code, Mail, UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 
